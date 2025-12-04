@@ -3,25 +3,42 @@ const INPUT:&str = "194-253,81430782-81451118,7709443-7841298,28377-38007,684123
 
 
 
-fn is_valid(serial_no:i64) -> bool {
+fn is_valid(serial_no:i64, doubles_only:bool) -> bool {
     let mut serial_parts: Vec<(i64, i32)> = Vec::new();
 
+    // break down the number
     let mut temp_no = serial_no;
-    let mut magnitude = 0;
+    let mut serial_magnitude = 0;
     while temp_no != 0 {
-        serial_parts.push((temp_no, magnitude));
+        serial_parts.push((temp_no, serial_magnitude));
         temp_no /= 10;
-        magnitude += 1;
+        serial_magnitude += 1;
     }
     //println!("magnitude: {magnitude}");
 
+    // fix the individual parts' magnitude
+    let mut digit_magnitude = serial_magnitude;
+    for part in &mut serial_parts {
+        part.1 = digit_magnitude;
+        digit_magnitude -= 1;
+    }
+
+    // finally figure out if the pattern is duplicated
     for part in serial_parts {
-        //println!("digits part: ({},{})", part.0, part.1);
-        if part.1 == (magnitude / 2) {
-            let doubled = (part.0 * 10_i64.pow(part.1.try_into().unwrap())) + part.0;
-            if doubled == serial_no {
-                return false;
-            }
+        // patterns can't repeat if they're more than half the length of number, skip
+        if part.1 > serial_magnitude/2 { continue; }
+        // check if the size of this part could be repeated into the whole. If not, skip
+        if (serial_magnitude % part.1) != 0 { continue; }
+        let repetitions = serial_magnitude / part.1;
+
+        if doubles_only && repetitions != 2 { continue; }
+        let mut repeated_pattern = part.0;
+        for _i in 1..repetitions {
+            repeated_pattern = repeated_pattern * 10_i64.pow(part.1.try_into().unwrap()); // shift digits up
+            repeated_pattern = repeated_pattern + part.0; // add lower digits to bottom
+        }
+        if repeated_pattern == serial_no {
+            return false;
         }
     }
 
@@ -44,7 +61,7 @@ fn main() {
         for serial_no in start_int..=end_int {
             //println!("checking serial#: {serial_no}");
 
-            if !is_valid(serial_no) {
+            if !is_valid(serial_no, false) {
                 invalid_values.push(serial_no);
                 println!("serial_no: {serial_no} is invalid");
             }
