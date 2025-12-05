@@ -12,23 +12,26 @@ fn main() {
 
     println!("Input file \"{input_path}\"");
 
-    let mut max_joltage = 0;
+    let mut max_joltage: u64 = 0;
+    let max_batteries = 12;
     if let Ok(lines) = read_lines(input_path) {
-        for line_String in lines.map_while(Result::ok) {
-            println!("{}", line_String);
-            let line = line_String.as_str();
+        for line_string in lines.map_while(Result::ok) {
+            println!("{}", line_string);
+            let mut line = line_string.as_str();
 
-            let max_pos = get_max(&line, true);
-            let first_char = line.char_indices().nth(max_pos).unwrap();
-            //println!("1stmax: ({}, {})", first_char.0, first_char.1);
+            let mut remaining_batteries = max_batteries;
+            let mut answer:u64 = 0;
+            while remaining_batteries > 0 {
+                let max = get_max(&line, remaining_batteries);
+                let digit_char = line.char_indices().nth(max).unwrap();
+                let digit_val:u64 = digit_char.1.to_digit(10).unwrap().into();
+                remaining_batteries-=1;
+                answer += digit_val * 10_u64.pow(remaining_batteries.try_into().unwrap());
+                //println!("answer: {answer}");
 
-            let remaining_line = &line[first_char.0+1..];
-            //println!("remaining_line: {remaining_line}");
-            let second_max = get_max(remaining_line, false);
-            let second_char = remaining_line.char_indices().nth(second_max).unwrap();
-            //println!("2ndmax: ({}, {})", second_char.0, second_char.1);
+                line = &line[digit_char.0+1..];
+            }
 
-            let answer = first_char.1.to_digit(10).unwrap()*10 + second_char.1.to_digit(10).unwrap(); 
             println!("line_max: {answer}");
             max_joltage += answer;
         }
@@ -44,11 +47,11 @@ fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>> wher
     Ok(io::BufReader::new(file).lines())
 }
 
-fn get_max(input:&str, skip_last:bool) -> usize {
+fn get_max(input:&str, chars_remaining:usize) -> usize {
     let mut max = '0';
     let mut pos = 0;
     for i in input.char_indices() {
-        if skip_last && i.0 == input.len()-1 { break; }
+        if i.0 == input.len()-chars_remaining+1 { break; }
         if max < i.1 {
             max = i.1;
             pos = i.0;
